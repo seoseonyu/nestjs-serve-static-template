@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run ci:check # biome ci . — 포맷·린트·assist(비수정), 실패 시 인라인 어노테이션
       - run: npm run build # frontend(client/) + backend(dist/)
       - run: npm test
       - run: npm run test:e2e

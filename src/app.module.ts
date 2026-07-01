@@ -1,11 +1,11 @@
-import { join } from 'path';
+import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { HealthModule } from './health/health.module';
 import { validateEnv } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [

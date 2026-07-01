@@ -29,18 +29,22 @@ export default function App() {
       <p className="app__subtitle">단일 서버에서 API와 화면을 함께 서빙</p>
 
       <p>
-        이 화면은 NestJS(<code>ServeStaticModule</code>)가 정적 서빙하며, 아래 값은 같은
-        서버의 <code>GET /api</code> 엔드포인트에서 가져옵니다.
+        이 화면은 NestJS(<code>ServeStaticModule</code>)가 정적 서빙하며, 아래
+        값은 같은 서버의 <code>GET /api</code> 엔드포인트에서 가져옵니다.
       </p>
 
       <section className="status">
         <code>GET /api</code>
         <span aria-hidden>→</span>
         {api.status === 'loading' && (
-          <span className="status__value status__value--loading">불러오는 중…</span>
+          <span className="status__value status__value--loading">
+            불러오는 중…
+          </span>
         )}
         {api.status === 'ok' && (
-          <strong className="status__value status__value--ok">{api.message}</strong>
+          <strong className="status__value status__value--ok">
+            {api.message}
+          </strong>
         )}
         {api.status === 'error' && (
           <strong className="status__value status__value--error">

@@ -1,7 +1,7 @@
-import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import helmet from 'helmet';
+import { NestFactory } from '@nestjs/core';
 import compression from 'compression';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -27,4 +27,4 @@ async function bootstrap() {
   // PORT는 플랫폼이 주입(Cloud Run 8080 등). 컨테이너 접근을 위해 0.0.0.0 바인딩 필수.
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
-bootstrap();
+void bootstrap();
