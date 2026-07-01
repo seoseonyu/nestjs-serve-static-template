@@ -1,11 +1,22 @@
-import { ValidationPipe } from '@nestjs/common';
+/**
+ * [Clean Architecture] Platform
+ * Role: Nest 앱을 생성하고 보안·압축·프리픽스·검증·종료훅을 적용해 서버를 기동한다.
+ * Scope: 조립/기동/인프라 설정만 담당. 비즈니스 규칙이나 데이터 접근은 포함하지 않는다.
+ * Depends-on: Platform(AppModule, NestExpressApplication) 및 인프라 미들웨어(helmet/compression).
+ * SOLID: SRP(부트스트랩 책임만) · DIP(애플리케이션 조립은 AppModule에 위임)
+ */
+
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+const bootstrapLogger = new Logger('Bootstrap');
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // 보안 헤더 (HSTS, nosniff, frameguard 등). 기본 CSP는 Vite 정적 자산('self')과 호환된다.
   app.use(helmet());
@@ -22,9 +33,16 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   // PaaS 로드밸런서 뒤에서 X-Forwarded-* 헤더를 신뢰(프로토콜/클라이언트 IP 판별).
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  app.set('trust proxy', 1);
 
   // PORT는 플랫폼이 주입(Cloud Run 8080 등). 컨테이너 접근을 위해 0.0.0.0 바인딩 필수.
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
-void bootstrap();
+
+void bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+
+  bootstrapLogger.error(message, stack);
+  process.exitCode = 1;
+});
