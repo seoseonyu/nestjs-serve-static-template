@@ -316,9 +316,12 @@ import { useEffect, useState } from 'react';
 2. **프론트 린트/테스트 부재.** `frontend/`에 ESLint 설정과 테스트가 없다. 루트 `lint`/`format`
    글롭도 `frontend/`를 포함하지 않는다. **목표:** 프론트용 ESLint(flat, React/TS) + Vitest +
    React Testing Library 도입.
-3. **`frontend/node_modules` 커밋됨.** `.gitignore` 3행 `/node_modules`가 루트 앵커라 중첩본이
-   누락됐다. **목표:** `node_modules/`(비앵커) 또는 `frontend/node_modules/` 추가 후
-   `git rm -r --cached frontend/node_modules`.
+3. **[해결됨] `frontend/node_modules` 커밋 → 언트랙.** `.gitignore`를 `node_modules/`(비앵커)로
+   고치고 `git rm -r --cached frontend/node_modules`로 제거했다. Windows에서 커밋된
+   `frontend/node_modules/.bin/vite` 등 셸림이 실행 비트 없이(mode 100644) 저장돼, Ubuntu CI의
+   `npm run build`(`tsc && vite build`)가 `sh: vite: Permission denied`(exit 127)로 실패했다.
+   기존 트리 위의 `npm install`은 셸림 권한을 고치지 않으므로, 커밋에서 제외해 CI가 클린 설치로
+   실행 가능한 셸림을 생성하게 한다.
 
 ---
 
