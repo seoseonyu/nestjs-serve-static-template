@@ -1,98 +1,90 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# nestjs-serve-static-template
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+**NestJS 서버 하나**가 REST API(`/api/`*)와 그 API를 소비하는 **React(Vite) SPA**를 함께 서빙하는 템플릿.
+프론트/백엔드가 **동일 origin·단일 배포 단위**이므로 CORS 설정이나 별도 프론트 호스팅이 필요 없다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 아키텍처
 
-## Description
+```
+요청 →  ┌─────────────────────────── NestJS (단일 프로세스) ───────────────────────────┐
+        │  /api/*   → 컨트롤러 (setGlobalPrefix('api'))                                  │
+        │  그 외    → ServeStaticModule → client/ 의 SPA, 미지 경로는 index.html 폴백   │
+        └──────────────────────────────────────────────────────────────────────────────┘
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+frontend/ (React+Vite 소스)  ──npm run build──▶  client/ (정적 산출물, gitignore)  ──serve──▶ NestJS
 ```
 
-## Compile and run the project
+- API 네임스페이스 `/api` + ServeStatic `exclude: ['/api/{*path}']`(Express 5 문법)로 API/SPA 라우팅 충돌 차단.
+- 개발 시엔 Vite dev 서버(HMR)가 `/api`를 NestJS로 프록시.
+
+## 요구사항
+
+- Node.js 22+
+- (배포/검증용) Docker
+
+## 개발
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
+npm run dev          # NestJS(watch, :3000) + Vite dev(:5173, /api 프록시) 동시 실행
 ```
 
-## Run tests
+브라우저에서 [http://localhost:5173](http://localhost:5173) → 화면이 `/api` 응답을 표시.
+
+## 빌드 & 프로덕션 실행 (로컬)
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run build        # frontend → client/, backend → dist/
+npm run start:prod   # node dist/main → http://localhost:3000 (API + SPA 단일 포트)
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 테스트
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm test             # 유닛
+npm run test:e2e     # e2e
+npm run test:cov     # 커버리지
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Docker & 배포
 
-## Resources
+```bash
+npm run docker:build # 멀티스테이지 이미지 빌드 (non-root, dumb-init, HEALTHCHECK)
+npm run docker:run   # http://localhost:3000
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+PaaS(Cloud Run/Railway/Render/Fly) 배포 방법은 **[DEPLOY.md](./DEPLOY.md)** 참고.
+`.github/workflows/deploy.yml`이 `master`/태그 push 시 테스트 → 이미지 빌드 → GHCR 푸시를 수행한다.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 프로덕션 하드닝 (기본 내장)
 
-## Support
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| 영역                | 구현                                                        |
+| ----------------- | --------------------------------------------------------- |
+| 보안 헤더             | `helmet` (CSP, HSTS, nosniff, frameguard …)               |
+| 압축                | `compression` (gzip)                                      |
+| 정적 캐시             | 해시 에셋 `immutable, max-age=1y` / `index.html` `no-cache`   |
+| 헬스체크              | `@nestjs/terminus` → `GET /api/health`                    |
+| Graceful shutdown | `enableShutdownHooks()` + `0.0.0.0` 바인딩                   |
+| 프록시 신뢰            | `trust proxy`(X-Forwarded-*)                              |
+| 설정 검증             | `@nestjs/config` + zod (부팅 시 `PORT`/`NODE_ENV` fail-fast) |
+| 입력 검증             | 전역 `ValidationPipe(whitelist, transform)`                 |
 
-## Stay in touch
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## 환경변수
 
-## License
+`.env.example` 참고. 핵심은 `PORT`(플랫폼이 주입, 미설정 시 3000), `NODE_ENV`.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 주요 구조
+
+```
+src/
+├── main.ts               # 부트스트랩 + 하드닝 미들웨어
+├── app.module.ts         # ServeStatic(캐시헤더) + Config + Health
+├── config/env.validation.ts
+└── health/               # terminus 헬스체크
+frontend/                 # React + Vite 소스 (→ client/)
+Dockerfile                # 멀티스테이지 (builder → runner)
+DEPLOY.md                 # PaaS 배포 가이드
+```
+

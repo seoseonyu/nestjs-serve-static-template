@@ -13,3 +13,41 @@ code {
   padding: 0.1em 0.35em;
   border-radius: 4px;
 }
+
+.app {
+  padding: 3rem 1.5rem;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.app__title {
+  margin-bottom: 0.25rem;
+}
+
+.app__subtitle {
+  opacity: 0.7;
+  margin-top: 0;
+}
+
+.status {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 10px;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.status__value--loading {
+  opacity: 0.6;
+}
+
+.status__value--ok {
+  color: #12a150;
+}
+
+.status__value--error {
+  color: #e5484d;
+}
