@@ -11,12 +11,14 @@
     "dev": "concurrently -n api,web -c blue,magenta \"nest start --watch\" \"npm --prefix frontend run dev\"",
     "docker:build": "docker build -t nestjs-serve-static-template .",
     "docker:run": "docker run --rm -p 3000:3000 nestjs-serve-static-template",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "biome check --write .",
+    "ci:check": "biome ci .",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -39,8 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
-    "@eslint/js": "^9.18.0",
+    "@biomejs/biome": "2.5.1",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
@@ -50,20 +51,14 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "concurrently": "^10.0.3",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.2.2",
-    "globals": "^17.0.0",
     "jest": "^30.0.0",
-    "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript": "^5.7.3"
   },
   "overrides": {
     "multer": "^2.2.0"

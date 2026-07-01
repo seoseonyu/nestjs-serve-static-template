@@ -5,15 +5,16 @@
  * Depends-on: Presentation(AppController, HealthModule), Domain(AppService), Core(validateEnv), ServeStatic/Config 인프라.
  * SOLID: SRP(컴포지션 루트 책임) · DIP(구체 구현 조립을 모듈 경계에서 수행)
  */
-import { join } from 'path';
-import type { Response } from 'express';
+
+import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import type { Response } from 'express';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { HealthModule } from './health/health.module';
 import { validateEnv } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [

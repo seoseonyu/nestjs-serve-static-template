@@ -5,11 +5,12 @@
  * Depends-on: Platform(AppModule, NestExpressApplication) 및 인프라 미들웨어(helmet/compression).
  * SOLID: SRP(부트스트랩 책임만) · DIP(애플리케이션 조립은 AppModule에 위임)
  */
-import { NestFactory } from '@nestjs/core';
+
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import helmet from 'helmet';
 import compression from 'compression';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 const bootstrapLogger = new Logger('Bootstrap');
