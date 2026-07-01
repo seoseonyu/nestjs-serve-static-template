@@ -1,90 +1,161 @@
 # nestjs-serve-static-template
 
-**NestJS 서버 하나**가 REST API(`/api/`*)와 그 API를 소비하는 **React(Vite) SPA**를 함께 서빙하는 템플릿.
-프론트/백엔드가 **동일 origin·단일 배포 단위**이므로 CORS 설정이나 별도 프론트 호스팅이 필요 없다.
+**Language:** English | [한국어](./README.ko.md)
 
-## 아키텍처
+A production-oriented template where one **NestJS 11** server serves both REST APIs under `/api/*` and a compiled **React 19 + Vite 6** single-page application from the same origin.
 
+The app is packaged as one deployable unit. In production there is no separate frontend host, no browser-facing CORS setup, and no hardcoded localhost API URL.
+
+## What This Template Provides
+
+- Single-origin deployment: NestJS serves the API and the built SPA from one process.
+- API isolation: every backend route lives under `/api`, while all other routes fall through to the SPA.
+- Production static serving: Vite builds into `client/`, and `@nestjs/serve-static` serves that directory.
+- Local HMR: Vite dev server proxies `/api` to NestJS during development.
+- Runtime hardening: Helmet, gzip compression, validated environment variables, request validation, health checks, graceful shutdown, and proxy awareness.
+- Docker-ready packaging: a multi-stage image builds frontend and backend artifacts, then runs as a non-root user.
+
+## Architecture
+
+```text
+Browser
+  |
+  | same origin
+  v
+NestJS process
+  |-- /api/*  -> controllers, services, health checks
+  |
+  `-- /*      -> ServeStaticModule -> client/index.html and Vite assets
+
+frontend/ source -- npm run build:client --> client/ static bundle
+src/ source      -- nest build              --> dist/ server bundle
 ```
-요청 →  ┌─────────────────────────── NestJS (단일 프로세스) ───────────────────────────┐
-        │  /api/*   → 컨트롤러 (setGlobalPrefix('api'))                                  │
-        │  그 외    → ServeStaticModule → client/ 의 SPA, 미지 경로는 index.html 폴백   │
-        └──────────────────────────────────────────────────────────────────────────────┘
 
-frontend/ (React+Vite 소스)  ──npm run build──▶  client/ (정적 산출물, gitignore)  ──serve──▶ NestJS
-```
+Key routing contracts:
 
-- API 네임스페이스 `/api` + ServeStatic `exclude: ['/api/{*path}']`(Express 5 문법)로 API/SPA 라우팅 충돌 차단.
-- 개발 시엔 Vite dev 서버(HMR)가 `/api`를 NestJS로 프록시.
+- `main.ts` applies `setGlobalPrefix('api')`, so backend endpoints are namespaced under `/api`.
+- `app.module.ts` excludes `/api/{*path}` from static serving, so API requests are never handled as SPA routes.
+- `frontend/vite.config.ts` builds to `../client`, matching the NestJS static root `join(__dirname, '..', 'client')`.
 
-## 요구사항
+## Requirements
 
 - Node.js 22+
-- (배포/검증용) Docker
+- npm
+- Docker, only for container build/run verification
 
-## 개발
+## Quick Start
 
 ```bash
 npm install
-npm run dev          # NestJS(watch, :3000) + Vite dev(:5173, /api 프록시) 동시 실행
+npm run dev
 ```
 
-브라우저에서 [http://localhost:5173](http://localhost:5173) → 화면이 `/api` 응답을 표시.
+Development servers:
 
-## 빌드 & 프로덕션 실행 (로컬)
+- API: `http://localhost:3000/api`
+- SPA with Vite HMR: `http://localhost:5173`
+- Health check: `http://localhost:3000/api/health`
+
+During development, the Vite server proxies `/api` to `http://localhost:3000`.
+
+## Production Build
 
 ```bash
-npm run build        # frontend → client/, backend → dist/
-npm run start:prod   # node dist/main → http://localhost:3000 (API + SPA 단일 포트)
+npm run build
+npm run start:prod
 ```
 
-## 테스트
+`npm run build` performs both builds:
 
-```bash
-npm test             # 유닛
-npm run test:e2e     # e2e
-npm run test:cov     # 커버리지
-```
+1. `npm run build:client` installs and builds `frontend/` into `client/`.
+2. `nest build` compiles the backend into `dist/`.
 
-## Docker & 배포
+`npm run start:prod` starts one Node.js process on `PORT` or `3000`.
 
-```bash
-npm run docker:build # 멀티스테이지 이미지 빌드 (non-root, dumb-init, HEALTHCHECK)
-npm run docker:run   # http://localhost:3000
-```
+## Common Commands
 
-PaaS(Cloud Run/Railway/Render/Fly) 배포 방법은 **[DEPLOY.md](./DEPLOY.md)** 참고.
-`.github/workflows/deploy.yml`이 `master`/태그 push 시 테스트 → 이미지 빌드 → GHCR 푸시를 수행한다.
+| Command | Description |
+|---|---|
+| `npm run dev` | Run NestJS watch mode and Vite dev server together. |
+| `npm run build:client` | Install frontend dependencies and build the SPA into `client/`. |
+| `npm run build` | Build frontend and backend production artifacts. |
+| `npm run start:prod` | Run the compiled server from `dist/`. |
+| `npm test` | Run backend unit tests. |
+| `npm run test:e2e` | Run backend end-to-end tests. |
+| `npm run test:cov` | Run backend tests with coverage. |
+| `npm run lint` | Run backend ESLint checks. |
+| `npm run docker:build` | Build the production Docker image. |
+| `npm run docker:run` | Run the production Docker image on port 3000. |
 
-## 프로덕션 하드닝 (기본 내장)
+## Environment
 
+Copy `.env.example` when local overrides are needed.
 
-| 영역                | 구현                                                        |
-| ----------------- | --------------------------------------------------------- |
-| 보안 헤더             | `helmet` (CSP, HSTS, nosniff, frameguard …)               |
-| 압축                | `compression` (gzip)                                      |
-| 정적 캐시             | 해시 에셋 `immutable, max-age=1y` / `index.html` `no-cache`   |
-| 헬스체크              | `@nestjs/terminus` → `GET /api/health`                    |
-| Graceful shutdown | `enableShutdownHooks()` + `0.0.0.0` 바인딩                   |
-| 프록시 신뢰            | `trust proxy`(X-Forwarded-*)                              |
-| 설정 검증             | `@nestjs/config` + zod (부팅 시 `PORT`/`NODE_ENV` fail-fast) |
-| 입력 검증             | 전역 `ValidationPipe(whitelist, transform)`                 |
+| Variable | Default | Description |
+|---|---:|---|
+| `PORT` | `3000` | HTTP port. PaaS platforms usually inject this value. |
+| `NODE_ENV` | `development` | One of `development`, `production`, or `test`. |
 
+Environment variables are validated with Zod at boot. Invalid values fail fast before the server starts.
 
-## 환경변수
+## Repository Layout
 
-`.env.example` 참고. 핵심은 `PORT`(플랫폼이 주입, 미설정 시 3000), `NODE_ENV`.
-
-## 주요 구조
-
-```
+```text
 src/
-├── main.ts               # 부트스트랩 + 하드닝 미들웨어
-├── app.module.ts         # ServeStatic(캐시헤더) + Config + Health
-├── config/env.validation.ts
-└── health/               # terminus 헬스체크
-frontend/                 # React + Vite 소스 (→ client/)
-Dockerfile                # 멀티스테이지 (builder → runner)
-DEPLOY.md                 # PaaS 배포 가이드
+  main.ts                    NestJS bootstrap and runtime hardening
+  app.module.ts              Config, static serving, health module composition
+  app.controller.ts          GET /api
+  app.service.ts             Application response logic
+  config/env.validation.ts   Zod environment validation
+  health/                    GET /api/health
+
+frontend/
+  src/                       React application source
+  vite.config.ts             Vite build output and /api dev proxy
+
+client/                      Generated Vite output, do not edit
+dist/                        Generated NestJS output, do not edit
+Dockerfile                   Multi-stage production image
+DEPLOY.md                    Platform deployment guide
 ```
 
+The root package and `frontend/` are separate npm projects with separate lockfiles. Use root scripts unless you intentionally need to work inside the frontend package.
+
+## Production Defaults
+
+| Area | Implementation |
+|---|---|
+| Security headers | `helmet` |
+| Compression | `compression` |
+| Static cache | Hashed assets: `public, max-age=31536000, immutable`; `index.html`: `no-cache` |
+| Health check | `GET /api/health` with `@nestjs/terminus` |
+| Shutdown | `enableShutdownHooks()` |
+| Container binding | `0.0.0.0` |
+| Proxy support | Express `trust proxy` |
+| Environment validation | `@nestjs/config` + Zod |
+| Request validation | Global `ValidationPipe({ whitelist: true, transform: true })` |
+
+## Docker
+
+```bash
+npm run docker:build
+npm run docker:run
+```
+
+The image builds `client/` and `dist/`, installs production dependencies only, runs as the `node` user, and exposes a container health check against `/api/health`.
+
+For platform-specific deployment notes, see [DEPLOY.md](./DEPLOY.md).
+
+## CI/CD
+
+`.github/workflows/deploy.yml` runs on pull requests and on pushes to `master`.
+
+- Pull requests: install, build, unit tests, e2e tests.
+- Pushes and version tags: after tests pass, build and publish a Docker image to GHCR.
+
+## Development Notes
+
+- Keep all API routes under `/api`.
+- Do not edit generated `client/` or `dist/` artifacts.
+- Keep Vite `build.outDir` and NestJS `ServeStaticModule.rootPath` pointed at the same `client/` directory.
+- Do not hardcode frontend API origins. The SPA should call the same-origin `/api`.
